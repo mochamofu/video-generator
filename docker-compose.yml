@@ -1,0 +1,34 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: video-generator-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./storage:/MoneyPrinterTurbo/storage
+      - ./config.toml:/MoneyPrinterTurbo/config.toml
+    environment:
+      - USE_GPU=${USE_GPU:-false}
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - OPENAI_MODEL_NAME=${OPENAI_MODEL_NAME:-gpt-4o}
+      - PEXELS_API_KEYS=${PEXELS_API_KEYS:-}
+      - PIXABAY_API_KEYS=${PIXABAY_API_KEYS:-}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: video-generator-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  storage:
