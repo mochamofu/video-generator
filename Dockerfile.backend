@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y \
+    git ffmpeg curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /
+
+RUN git clone --depth 1 https://github.com/harry0703/MoneyPrinterTurbo.git
+
+WORKDIR /MoneyPrinterTurbo
+
+RUN pip install --no-cache-dir uv && \
+    uv pip install --system -r requirements.txt
+
+COPY scripts/entrypoint.sh /entrypoint.sh
+COPY scripts/init_config.py /init_config.py
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080
+
+ENTRYPOINT ["/entrypoint.sh"]
