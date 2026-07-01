@@ -1,0 +1,38 @@
+name: StockProAI デイリーレポート
+
+on:
+  schedule:
+    # 平日 07:30 JST (= 22:30 UTC 前日) に実行
+    - cron: "30 22 * * 0-4"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 依存関係をインストール
+        run: pip install -r apps/stock-daily-report/requirements.txt
+
+      - name: レポートを生成
+        run: python apps/stock-daily-report/report.py
+
+      - name: レポートをコミット
+        run: |
+          git config user.name "stockproai-bot"
+          git config user.email "actions@github.com"
+          git add apps/stock-daily-report/reports/
+          if git diff --cached --quiet; then
+            echo "変更なし（休場日など）"
+          else
+            git commit -m "📈 デイリーレポート $(TZ=Asia/Tokyo date +%Y-%m-%d)"
+            git push
+          fi

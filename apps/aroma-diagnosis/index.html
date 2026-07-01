@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>香り診断｜今のあなたに必要なアロマは？</title>
+  <meta name="description" content="いくつかの質問に直感で答えるだけ。今の心と体の状態に合うアロマブレンドをご提案します。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+
+    <!-- スタート画面 -->
+    <section id="screen-start" class="screen active">
+      <div class="hero">
+        <p class="hero-badge">🧠 × 🌿 脳波アロマメソッド</p>
+        <h1>＼ 今のあなたに<br>ピッタリの香りは？ ／</h1>
+        <p class="lead">
+          いくつかの質問に<strong>直感で</strong>答えるだけ。<br>
+          今の心と体の状態に合う<br>アロマブレンドをご提案します。
+        </p>
+        <button class="btn-primary" onclick="startQuiz()">診断をはじめる（約1分）</button>
+        <p class="note">※ この診断は医療行為ではありません。<br>リラクゼーションを目的とした香りのご提案です。</p>
+      </div>
+    </section>
+
+    <!-- 質問画面 -->
+    <section id="screen-quiz" class="screen">
+      <div class="progress"><div id="progress-bar" class="progress-bar"></div></div>
+      <p id="quiz-count" class="quiz-count"></p>
+      <h2 id="quiz-question"></h2>
+      <div id="quiz-choices" class="choices"></div>
+      <button id="btn-back" class="btn-text" onclick="goBack()">← ひとつ前に戻る</button>
+    </section>
+
+    <!-- 結果画面 -->
+    <section id="screen-result" class="screen">
+      <p class="result-label">診断結果</p>
+      <h2 id="result-title"></h2>
+      <div class="result-card">
+        <p class="result-blend-label">今のあなたに必要なのは…</p>
+        <p id="result-blend" class="result-blend"></p>
+        <p id="result-oils" class="result-oils"></p>
+        <p id="result-desc" class="result-desc"></p>
+        <div class="result-howto">
+          <h3>🌿 おすすめの使い方</h3>
+          <p id="result-howto"></p>
+        </div>
+      </div>
+      <div class="cta">
+        <p>あなただけの1本をつくりませんか？</p>
+        <a id="cta-link" class="btn-primary" href="#" target="_blank" rel="noopener">脳波測定つきオーダーはこちら</a>
+      </div>
+      <button class="btn-text" onclick="restart()">もう一度診断する</button>
+      <p class="note">※ 本診断は医療行為・診断行為ではありません。体調に不安がある場合は医療機関にご相談ください。</p>
+    </section>
+
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
