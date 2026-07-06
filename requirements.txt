@@ -1,0 +1,6 @@
+# 音声合成 (無料・高品質。オンライン接続が必要)
+edge-tts>=6.1
+
+# 以下は任意:
+# Claude APIで台本を全自動生成する場合のみ (`shortgen new` / `shortgen batch`)
+# anthropic>=0.40
