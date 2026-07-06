@@ -22,6 +22,45 @@ cd video-generator
 pip install -r requirements.txt   # edge-tts(音声合成)
 ```
 
+## 2つのレンダラー
+
+| コマンド | 内容 | 追加要件 |
+|---|---|---|
+| `renderpro` **(推奨)** | 口パクするプレゼンターキャラが語りかける + スプリングアニメーションのテロップ + 動く背景 (Remotion製) | Node.js 18+ |
+| `render` | テロップのみの簡易版 (ffmpeg直) | なし |
+
+```bash
+# 初回のみ (renderpro用)
+cd remotion && npm install && cd ..
+
+python3 -m shortgen renderpro examples/sample.json
+```
+
+### キャラクターを差し替える
+
+`assets/character/` の3枚のPNG(透過)を置き換えるだけ:
+
+| ファイル | 内容 |
+|---|---|
+| `closed.png` | 口閉じ(基本) |
+| `open.png` | 口開き(発話中に切替) |
+| `blink.png` | 目閉じ(まばたき、任意) |
+
+無い場合はフラットデザインのプレースホルダーが自動生成されます。
+
+**AI生成イラストを使う場合**(nijijourney / Midjourney / Pixia / GPT Image等):
+
+1. ベースを生成: 「上半身・正面向き・口を閉じて微笑み・**単色グリーンバック(#00FF00)**」
+2. 同じ画像を参照させて差分生成(nijiなら `--oref`/キャラクターリファレンス):
+   - 「口を開けて話している。それ以外は完全に同じ」
+   - 「目を閉じている。それ以外は完全に同じ」
+3. 透過PNG化して配置:
+   ```bash
+   python3 -m shortgen.character niji_closed.png assets/character/closed.png
+   python3 -m shortgen.character niji_open.png   assets/character/open.png
+   python3 -m shortgen.character niji_blink.png  assets/character/blink.png
+   ```
+
 ## 使い方
 
 ### パターンA: Claude Codeと組み合わせる(推奨・APIキー不要)

@@ -8,11 +8,13 @@
 依頼されたら、**Claude APIを呼ばずに自分で台本を書いて**レンダリングする:
 
 1. `prompts/scriptwriter.md` のルールに従い、台本JSONを `scripts/<スラッグ>.json` に書く
-   (フォーマットは `examples/sample.json` 参照。scenes 5〜8個、合計45秒以内)
-2. レンダリング:
+   (フォーマットは `examples/sample.json` 参照。scenes 5〜8個、合計45秒以内、
+   各シーンに `emoji` を付ける)
+2. レンダリング(**renderproを既定にする**。口パクキャラ+アニメーション付き):
    ```bash
-   python3 -m shortgen render scripts/<スラッグ>.json
+   python3 -m shortgen renderpro scripts/<スラッグ>.json
    ```
+   Node.jsが無い/失敗する場合のみ簡易版 `render` にフォールバック。
    出力は `output/<スラッグ>.mp4`(+ `.srt` 字幕 + `.caption.txt` 投稿用キャプション)
 3. 複数本頼まれたら 1〜2 をトピックごとに繰り返す
 4. 生成したmp4はユーザーに提示する

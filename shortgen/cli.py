@@ -26,6 +26,14 @@ def main(argv: list[str] | None = None) -> int:
                     help="edge: 音声名 / voicevox: 話者ID (例: 3=ずんだもん)")
     pr.add_argument("--font", default=None, help="日本語フォントファイルのパス")
 
+    pp = sub.add_parser("renderpro",
+                        help="Remotion版レンダラー(口パクキャラ+アニメーション、要Node.js)")
+    pp.add_argument("script", help="台本JSONのパス")
+    pp.add_argument("-o", "--out", default=None, help="出力mp4 (省略時 output/<台本名>.mp4)")
+    pp.add_argument("--tts", default="auto",
+                    choices=["auto", "voicevox", "edge", "openjtalk", "none"])
+    pp.add_argument("--voice", default=None)
+
     pn = sub.add_parser("new", help="Claude APIで台本を生成 (要 ANTHROPIC_API_KEY 等)")
     pn.add_argument("topic", help="動画のトピック")
     pn.add_argument("--style", default=None, help="トーンや切り口の指定")
@@ -51,6 +59,13 @@ def main(argv: list[str] | None = None) -> int:
         out = args.out or os.path.join(
             "output", os.path.splitext(os.path.basename(args.script))[0] + ".mp4")
         render(args.script, out, tts_name=args.tts, font=args.font, voice=args.voice)
+        return 0
+
+    if args.cmd == "renderpro":
+        from .renderpro import render_pro
+        out = args.out or os.path.join(
+            "output", os.path.splitext(os.path.basename(args.script))[0] + ".mp4")
+        render_pro(args.script, out, tts_name=args.tts, voice=args.voice)
         return 0
 
     if args.cmd == "new":
