@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@fontsource/noto-sans-jp": "^5.2.9",
     "@remotion/cli": "^4.0.485",
     "@remotion/media-utils": "^4.0.485",
     "react": "^19.2.7",

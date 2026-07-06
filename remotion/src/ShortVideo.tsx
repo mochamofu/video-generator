@@ -8,6 +8,8 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import '@fontsource/noto-sans-jp/700.css';
+import '@fontsource/noto-sans-jp/900.css';
 import {Background} from './Background';
 import {Character, type CharacterAssets} from './Character';
 import {KineticText} from './KineticText';
@@ -52,7 +54,7 @@ export const defaultProps: VideoProps = {
 };
 
 const FONT =
-  '"Noto Sans CJK JP", "Hiragino Sans", "Yu Gothic", "Meiryo", "IPAPGothic", sans-serif';
+  '"Noto Sans JP", "Noto Sans CJK JP", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif';
 
 export const ShortVideo: React.FC<VideoProps> = (props) => {
   const frame = useCurrentFrame();
