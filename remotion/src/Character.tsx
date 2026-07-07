@@ -22,7 +22,8 @@ export const Character: React.FC<{
   assets: CharacterAssets;
   audioSrc: string;
   width: number;
-}> = ({assets, audioSrc, width}) => {
+  corner?: boolean; // 実写素材と同居する時は右下に小さく
+}> = ({assets, audioSrc, width, corner}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const audioData = useAudioData(staticFile(audioSrc));
@@ -56,19 +57,25 @@ export const Character: React.FC<{
   const sway = Math.sin((frame / fps) * 0.8) * 1.3;
   const bounce = 1 + Math.min(amp, 0.3) * 0.06;
 
+  const pos: React.CSSProperties = corner
+    ? {right: 16, transform: `translateY(${bob}px) rotate(${sway}deg) scale(${bounce})`}
+    : {
+        left: '50%',
+        transform: `translateX(-50%) translateY(${bob}px) rotate(${sway}deg) scale(${bounce})`,
+      };
+
   return (
     <div
       style={{
         position: 'absolute',
-        bottom: interpolate(enter, [0, 1], [-420, -30]),
-        left: '50%',
-        transform: `translateX(-50%) translateY(${bob}px) rotate(${sway}deg) scale(${bounce})`,
+        bottom: interpolate(enter, [0, 1], [-420, corner ? -14 : -30]),
         transformOrigin: 'bottom center',
+        ...pos,
       }}
     >
       <Img
         src={staticFile(src)}
-        style={{width, display: 'block'}}
+        style={{width: corner ? Math.min(width, 440) : width, display: 'block'}}
       />
     </div>
   );

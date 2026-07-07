@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>shortgen editor</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #171c24; --panel2: #1f2630; --line: #2a3340;
+    --text: #e8edf4; --dim: #8b97a6; --accent: #4dd0e1; --warn: #ff6b6b;
+    --video: #3b82f6; --audio: #22c55e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; overscroll-behavior: none; }
+
+  header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--panel); position: sticky; top: 0; z-index: 30; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 15px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .badge { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--panel2); color: var(--dim); white-space: nowrap; }
+  .badge.over { background: #3d1d1d; color: var(--warn); font-weight: 700; }
+  button { border: 0; border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 700; cursor: pointer; background: var(--panel2); color: var(--text); }
+  button.primary { background: var(--accent); color: #08222a; }
+  button.danger { background: #3d1d1d; color: var(--warn); }
+  button:disabled { opacity: 0.45; }
+
+  .meta { padding: 12px 14px; display: grid; gap: 8px; background: var(--bg); }
+  .meta label { font-size: 11px; color: var(--dim); }
+  .meta input, .meta select, .meta textarea, .sheet input, .sheet select, .sheet textarea {
+    width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    color: var(--text); padding: 10px 12px; font-size: 14px; font-family: inherit;
+  }
+  .row { display: flex; gap: 8px; align-items: center; }
+
+  /* タイムライン */
+  .tl-wrap { margin-top: 4px; border-top: 1px solid var(--line); background: var(--panel); }
+  .tl-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; }
+  .tl-head span { font-size: 12px; color: var(--dim); font-weight: 700; }
+  .zoom { display: flex; gap: 6px; }
+  .zoom button { padding: 6px 12px; }
+  .tl-scroll { overflow-x: auto; overflow-y: hidden; padding: 0 14px 16px; }
+  .tl-inner { position: relative; min-width: 100%; }
+  .ruler { position: relative; height: 22px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .tick { position: absolute; top: 0; font-size: 10px; color: var(--dim); border-left: 1px solid var(--line); padding-left: 4px; height: 100%; }
+  .track-label { font-size: 10px; color: var(--dim); margin: 6px 0 4px; display: flex; gap: 6px; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .track { position: relative; height: 74px; margin-bottom: 6px; }
+  .clip { position: absolute; top: 0; height: 100%; border-radius: 10px; padding: 7px 9px; overflow: hidden;
+          font-size: 12px; line-height: 1.35; user-select: none; -webkit-user-select: none; cursor: pointer; }
+  .clip .t { font-weight: 700; white-space: pre; overflow: hidden; display: block; }
+  .clip small { color: rgba(255,255,255,0.75); font-size: 10px; display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .clip.v { background: linear-gradient(180deg, #2d4f8f, #22376b); border: 1px solid #4a6cb3; }
+  .clip.a { background: linear-gradient(180deg, #1f6b45, #17522f); border: 1px solid #37a06b; }
+  .clip.selected { outline: 2px solid var(--accent); }
+  .clip.dragging { opacity: 0.85; z-index: 10; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+  .clip .grip { position: absolute; left: 2px; top: 0; bottom: 0; width: 20px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.55); font-size: 13px; touch-action: none; cursor: grab; }
+  .clip .rsz { position: absolute; right: 0; top: 0; bottom: 0; width: 20px; touch-action: none; cursor: ew-resize; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.45); }
+  .clip .body { margin-left: 20px; margin-right: 16px; height: 100%; overflow: hidden; }
+  .clip .mediaTag { position: absolute; right: 22px; top: 5px; font-size: 11px; }
+
+  .addbar { padding: 0 14px 14px; }
+  .addbar button { width: 100%; padding: 12px; border: 1px dashed var(--line); background: transparent; color: var(--dim); }
+
+  /* 編集シート */
+  .sheet-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 40; display: none; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--panel); border-radius: 18px 18px 0 0;
+           padding: 16px 16px 26px; display: none; max-height: 80vh; overflow-y: auto; }
+  .sheet.open, .sheet-mask.open { display: block; }
+  .sheet h2 { font-size: 13px; color: var(--dim); margin-bottom: 12px; }
+  .sheet .field { margin-bottom: 12px; }
+  .sheet .field label { font-size: 11px; color: var(--dim); display: block; margin-bottom: 5px; }
+  .sheet textarea { min-height: 62px; }
+  .dur-row { display: flex; align-items: center; gap: 10px; }
+  .dur-row input[type=range] { flex: 1; }
+  .dur-val { font-size: 13px; font-weight: 700; min-width: 52px; text-align: right; }
+  .sheet .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--panel2);
+           border: 1px solid var(--line); padding: 10px 18px; border-radius: 12px; font-size: 13px; z-index: 60;
+           display: none; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="fileName">…</h1>
+  <span class="badge" id="totalBadge">0.0s</span>
+  <button id="saveBtn" class="primary">保存</button>
+  <button id="renderBtn">🎬</button>
+</header>
+
+<div class="meta">
+  <div>
+    <label>タイトル(\n可)</label>
+    <input id="titleInput">
+  </div>
+  <div class="row">
+    <div style="flex:1">
+      <label>テーマ</label>
+      <select id="themeSel">
+        <option>midnight</option><option>sunset</option><option>forest</option>
+        <option>paper</option><option>crimson</option>
+      </select>
+    </div>
+    <div style="flex:1">
+      <label>キャラ幅(0=非表示)</label>
+      <input id="charWidth" type="number" step="20" min="0" max="1080">
+    </div>
+  </div>
+</div>
+
+<div class="tl-wrap">
+  <div class="tl-head">
+    <span>タイムライン</span>
+    <div class="zoom">
+      <button id="zoomOut">−</button>
+      <button id="zoomIn">+</button>
+    </div>
+  </div>
+  <div class="tl-scroll" id="tlScroll">
+    <div class="tl-inner" id="tlInner">
+      <div class="ruler" id="ruler"></div>
+      <div class="track-label"><span class="dot" style="background:var(--video)"></span>映像(テロップ/素材) — ≡でドラッグ並べ替え、右端で長さ調整</div>
+      <div class="track" id="videoTrack"></div>
+      <div class="track-label"><span class="dot" style="background:var(--audio)"></span>音声(ナレーション)</div>
+      <div class="track" id="audioTrack"></div>
+    </div>
+  </div>
+  <div class="addbar"><button id="addScene">＋ シーンを追加</button></div>
+</div>
+
+<div class="sheet-mask" id="sheetMask"></div>
+<div class="sheet" id="sheet">
+  <h2 id="sheetTitle">シーン編集</h2>
+  <div class="field"><label>テロップ(改行OK・1行12文字目安)</label><textarea id="fText"></textarea></div>
+  <div class="field"><label>ナレーション(読み上げ)</label><textarea id="fNarr"></textarea></div>
+  <div class="row" style="margin-bottom:12px">
+    <div style="flex:1"><label style="font-size:11px;color:var(--dim)">絵文字</label><input id="fEmoji" maxlength="4"></div>
+    <div style="flex:3"><label style="font-size:11px;color:var(--dim)">実写素材パス(任意)</label><input id="fMedia" placeholder="assets/media/xxx.jpg"></div>
+  </div>
+  <div class="field">
+    <label>最低表示時間(音声が長ければ音声優先)</label>
+    <div class="dur-row">
+      <input type="range" id="fDur" min="1" max="12" step="0.1">
+      <span class="dur-val" id="fDurVal">2.2s</span>
+    </div>
+  </div>
+  <div class="actions">
+    <button id="mvL">◀ 前へ</button>
+    <button id="mvR">後ろへ ▶</button>
+    <button id="dupBtn">複製</button>
+    <button id="delBtn" class="danger">削除</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let script = null;
+let pxPerSec = 26;
+let selected = -1;
+
+const $ = (id) => document.getElementById(id);
+const MIN_SCENE = 2.2;
+
+function estDur(sc) {
+  const narr = (sc.narration || sc.text.replace(/\n/g, '')) || '';
+  const est = 0.8 + 0.135 * narr.length;
+  return Math.max(est, sc.min_duration || MIN_SCENE);
+}
+function totalDur() { return script.scenes.reduce((a, s) => a + estDur(s), 0); }
+
+function toast(msg, ms = 2200) {
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = 'none', ms);
+}
+
+function render() {
+  const total = totalDur();
+  const badge = $('totalBadge');
+  badge.textContent = total.toFixed(1) + 's / 60s';
+  badge.classList.toggle('over', total > 60);
+
+  const W = Math.max(total * pxPerSec + 60, window.innerWidth - 28);
+  $('tlInner').style.width = W + 'px';
+
+  // ルーラー
+  const ruler = $('ruler'); ruler.innerHTML = '';
+  const step = pxPerSec < 18 ? 10 : 5;
+  for (let s = 0; s <= Math.ceil(total) + step; s += step) {
+    const d = document.createElement('div');
+    d.className = 'tick'; d.style.left = (s * pxPerSec) + 'px'; d.textContent = s + 's';
+    ruler.appendChild(d);
+  }
+
+  const vt = $('videoTrack'), at = $('audioTrack');
+  vt.innerHTML = ''; at.innerHTML = '';
+  let x = 0;
+  script.scenes.forEach((sc, i) => {
+    const w = estDur(sc) * pxPerSec;
+    const v = document.createElement('div');
+    v.className = 'clip v' + (i === selected ? ' selected' : '');
+    v.style.left = x + 'px'; v.style.width = Math.max(w - 4, 46) + 'px';
+    v.dataset.i = i;
+    v.innerHTML = `<div class="grip">≡</div><div class="rsz">⇔</div>` +
+      (sc.media ? '<div class="mediaTag">🖼️</div>' : '') +
+      `<div class="body"><span class="t">${(sc.emoji||'') + ' ' + esc(sc.text.split('\n')[0])}</span>` +
+      `<small>${esc(sc.text.split('\n').slice(1).join(' '))}</small></div>`;
+    v.addEventListener('click', (e) => { if (!drag.active && !rsz.active) openSheet(i); });
+    vt.appendChild(v);
+
+    const a = document.createElement('div');
+    a.className = 'clip a' + (i === selected ? ' selected' : '');
+    a.style.left = x + 'px'; a.style.width = Math.max(w - 4, 46) + 'px';
+    a.innerHTML = `<div class="body" style="margin-left:4px"><small style="white-space:normal">${esc((sc.narration||'').slice(0, 60))}</small></div>`;
+    a.addEventListener('click', () => openSheet(i));
+    at.appendChild(a);
+    x += w;
+  });
+
+  attachDrag(); attachResize();
+}
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+/* ===== 並べ替えドラッグ (≡ハンドル) ===== */
+const drag = {active: false};
+function attachDrag() {
+  document.querySelectorAll('#videoTrack .clip .grip').forEach(g => {
+    g.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const clip = g.parentElement;
+      const i = +clip.dataset.i;
+      drag.active = true; drag.i = i; drag.startX = e.clientX; drag.el = clip;
+      clip.classList.add('dragging');
+      g.setPointerCapture(e.pointerId);
+    });
+    g.addEventListener('pointermove', (e) => {
+      if (!drag.active) return;
+      const dx = e.clientX - drag.startX;
+      drag.el.style.transform = `translateX(${dx}px)`;
+      // 移動先インデックス計算
+      const widths = script.scenes.map(s => estDur(s) * pxPerSec);
+      let target = drag.i, acc = 0, center = 0;
+      for (let k = 0; k < drag.i; k++) acc += widths[k];
+      center = acc + widths[drag.i] / 2 + dx;
+      let cum = 0;
+      for (let k = 0; k < widths.length; k++) {
+        if (center < cum + widths[k]) { target = k; break; }
+        cum += widths[k]; target = k;
+      }
+      drag.target = target;
+    });
+    const finish = (e) => {
+      if (!drag.active) return;
+      drag.el.classList.remove('dragging'); drag.el.style.transform = '';
+      const from = drag.i, to = drag.target ?? drag.i;
+      drag.active = false;
+      if (to !== from) {
+        const [m] = script.scenes.splice(from, 1);
+        script.scenes.splice(to, 0, m);
+        if (selected === from) selected = to;
+        toast(`シーン${from+1} → ${to+1}へ移動`);
+      }
+      render();
+    };
+    g.addEventListener('pointerup', finish);
+    g.addEventListener('pointercancel', finish);
+  });
+}
+
+/* ===== 長さ調整 (右端⇔) ===== */
+const rsz = {active: false};
+function attachResize() {
+  document.querySelectorAll('#videoTrack .clip .rsz').forEach(h => {
+    h.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      const clip = h.parentElement;
+      rsz.active = true; rsz.i = +clip.dataset.i; rsz.startX = e.clientX;
+      rsz.base = estDur(script.scenes[rsz.i]);
+      h.setPointerCapture(e.pointerId);
+    });
+    h.addEventListener('pointermove', (e) => {
+      if (!rsz.active) return;
+      const d = rsz.base + (e.clientX - rsz.startX) / pxPerSec;
+      script.scenes[rsz.i].min_duration = Math.round(Math.min(Math.max(d, 1), 15) * 10) / 10;
+      render();
+    });
+    const done = () => {
+      if (!rsz.active) return;
+      rsz.active = false;
+      toast(`最低表示 ${script.scenes[rsz.i].min_duration}s`);
+    };
+    h.addEventListener('pointerup', done);
+    h.addEventListener('pointercancel', done);
+  });
+}
+
+/* ===== 編集シート ===== */
+function openSheet(i) {
+  selected = i;
+  const sc = script.scenes[i];
+  $('sheetTitle').textContent = `シーン ${i+1} / ${script.scenes.length}`;
+  $('fText').value = sc.text || '';
+  $('fNarr').value = sc.narration || '';
+  $('fEmoji').value = sc.emoji || '';
+  $('fMedia').value = sc.media || '';
+  $('fDur').value = sc.min_duration || MIN_SCENE;
+  $('fDurVal').textContent = (sc.min_duration || MIN_SCENE) + 's';
+  $('sheet').classList.add('open'); $('sheetMask').classList.add('open');
+  render();
+}
+function closeSheet() {
+  $('sheet').classList.remove('open'); $('sheetMask').classList.remove('open');
+  selected = -1; render();
+}
+function bindSheet() {
+  $('sheetMask').addEventListener('click', closeSheet);
+  const upd = (k, v) => { if (selected >= 0) { if (v) script.scenes[selected][k] = v; else delete script.scenes[selected][k]; render(); } };
+  $('fText').addEventListener('input', e => { if (selected>=0){ script.scenes[selected].text = e.target.value; render(); }});
+  $('fNarr').addEventListener('input', e => upd('narration', e.target.value));
+  $('fEmoji').addEventListener('input', e => upd('emoji', e.target.value.trim()));
+  $('fMedia').addEventListener('input', e => upd('media', e.target.value.trim()));
+  $('fDur').addEventListener('input', e => {
+    if (selected < 0) return;
+    script.scenes[selected].min_duration = +e.target.value;
+    $('fDurVal').textContent = e.target.value + 's'; render();
+  });
+  $('mvL').addEventListener('click', () => move(-1));
+  $('mvR').addEventListener('click', () => move(1));
+  $('dupBtn').addEventListener('click', () => {
+    const c = JSON.parse(JSON.stringify(script.scenes[selected]));
+    script.scenes.splice(selected + 1, 0, c); openSheet(selected + 1);
+  });
+  $('delBtn').addEventListener('click', () => {
+    if (script.scenes.length <= 1) return toast('最後のシーンは消せません');
+    script.scenes.splice(selected, 1); closeSheet();
+  });
+}
+function move(d) {
+  const i = selected, j = i + d;
+  if (j < 0 || j >= script.scenes.length) return;
+  [script.scenes[i], script.scenes[j]] = [script.scenes[j], script.scenes[i]];
+  openSheet(j);
+}
+
+/* ===== 保存 / レンダリング ===== */
+async function save() {
+  script.title = $('titleInput').value;
+  script.theme = $('themeSel').value;
+  const cw = +$('charWidth').value;
+  if (cw === 780) delete script.character_width; else script.character_width = cw;
+  const r = await fetch('/save', {method: 'POST', body: JSON.stringify(script)});
+  toast(r.ok ? '✅ 保存しました' : '保存失敗');
+  return r.ok;
+}
+async function doRender() {
+  if (!(await save())) return;
+  $('renderBtn').disabled = true;
+  toast('🎬 レンダリング開始…(数分かかります)', 4000);
+  await fetch('/render', {method: 'POST'});
+  const poll = setInterval(async () => {
+    const s = await (await fetch('/status')).json();
+    if (s.state === 'done') {
+      clearInterval(poll); $('renderBtn').disabled = false;
+      toast('✅ 完成!ダウンロードします', 4000);
+      location.href = '/video';
+    } else if (s.state === 'error') {
+      clearInterval(poll); $('renderBtn').disabled = false;
+      toast('❌ 失敗: ' + (s.message || ''), 6000);
+    }
+  }, 3000);
+}
+
+async function init() {
+  script = await (await fetch('/script')).json();
+  const name = await (await fetch('/name')).text();
+  $('fileName').textContent = name;
+  $('titleInput').value = script.title || '';
+  $('themeSel').value = script.theme || 'midnight';
+  $('charWidth').value = script.character_width ?? 780;
+  $('saveBtn').addEventListener('click', save);
+  $('renderBtn').addEventListener('click', doRender);
+  $('zoomIn').addEventListener('click', () => { pxPerSec = Math.min(pxPerSec * 1.3, 90); render(); });
+  $('zoomOut').addEventListener('click', () => { pxPerSec = Math.max(pxPerSec / 1.3, 8); render(); });
+  $('addScene').addEventListener('click', () => {
+    script.scenes.push({text: '新しいシーン', narration: '', emoji: '✨'});
+    openSheet(script.scenes.length - 1);
+    $('tlScroll').scrollLeft = 999999;
+  });
+  bindSheet();
+  render();
+}
+init();
+</script>
+</body>
+</html>

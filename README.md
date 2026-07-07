@@ -61,6 +61,47 @@ python3 -m shortgen renderpro examples/sample.json
    python3 -m shortgen.character niji_blink.png  assets/character/blink.png
    ```
 
+## タイムラインエディタ(スマホ対応)
+
+CapCut風の2トラック(映像/音声)タイムラインで台本を微調整できます:
+
+```bash
+python3 -m shortgen edit scripts/invest/shikiho_yomikata.json
+# → PC: http://127.0.0.1:7860 / スマホ: 表示されるLAN URLへ(同じWi-Fi)
+```
+
+- シーンブロックを **≡でドラッグ並べ替え**、**右端⇔で表示時間を調整**
+- タップでテロップ/ナレーション/絵文字/実写素材パスを編集
+- 「保存」で台本JSONへ書き戻し、「🎬」で**その場でレンダリング→mp4ダウンロード**
+  (スマホだけで 編集→書き出し が完結)
+
+## CapCutに持ち込む(手動編集派)
+
+自分で編集したい人向けに、素材だけ一括生成:
+
+```bash
+python3 -m shortgen export scripts/gin-shampoo/tadashii_araikata.json
+# → export/<台本名>/ に シーン別音声wav / 全体音声 / 字幕srt /
+#    テロップ透過PNG(重ねるだけ) / タイミング表csv / 投稿キャプション
+```
+
+## 実写素材の埋め込み
+
+シーンに `"media"` を付けると角丸カードで表示されます(製品写真・体験シーン向け):
+
+```json
+{ "text": "GIN.の泡は\nここが違う", "media": "assets/media/gin/awa.mp4", "narration": "…" }
+```
+
+- 画像(.jpg/.png/.webp)と動画(.mp4/.mov)両対応。動画はループ・ミュート再生
+- 素材があるシーンではキャラが右下に小さく退避。`"character_width": 0` でキャラ非表示
+
+## アカウント運用
+
+`accounts/` に3アカウントの設計書(ペルソナ・ネタの柱・法規制NG・CTA)があります。
+Claude Codeに「投資アカウントの動画3本作って」と言うと、該当プロファイルを読んで
+`scripts/<slug>/` に台本を作りレンダリングまで実行します。
+
 ## 使い方
 
 ### パターンA: Claude Codeと組み合わせる(推奨・APIキー不要)

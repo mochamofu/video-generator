@@ -16,9 +16,9 @@ import shutil
 import subprocess
 import tempfile
 
-from .render import MIN_SCENE, TAIL, Timing, _write_srt
+from .render import _write_srt
 from .themes import get_theme
-from .tts import SilentTTS, estimate_duration, pick_engine
+from .tts import pick_engine
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REMOTION_DIR = os.path.join(REPO_ROOT, "remotion")
@@ -55,73 +55,56 @@ def render_pro(script_path: str, out_path: str, *, tts_name: str = "auto",
 
     _ensure_node_modules()
 
-    # キャラ素材を public/ へ配置(無ければプレースホルダー生成)
-    from .character import prepare_character_dir
-    char_src = prepare_character_dir(os.path.join(REPO_ROOT, "assets", "character"))
-    pub_char = os.path.join(REMOTION_DIR, "public", "character")
-    os.makedirs(pub_char, exist_ok=True)
-    char_props = {}
-    for key, path in char_src.items():
-        shutil.copy(path, os.path.join(pub_char, f"{key}.png"))
-        char_props[key] = f"character/{key}.png"
+    # キャラ素材を public/ へ配置(無ければプレースホルダー生成)。width=0なら非表示
+    char_width = int(script.get("character_width", 780))
+    char_props = {"closed": "", "open": ""}
+    if char_width > 0:
+        from .character import prepare_character_dir
+        char_src = prepare_character_dir(os.path.join(REPO_ROOT, "assets", "character"))
+        pub_char = os.path.join(REMOTION_DIR, "public", "character")
+        os.makedirs(pub_char, exist_ok=True)
+        char_props = {}
+        for key, path in char_src.items():
+            shutil.copy(path, os.path.join(pub_char, f"{key}.png"))
+            char_props[key] = f"character/{key}.png"
 
     job_dir = os.path.join(REMOTION_DIR, "public", "job", slug)
     os.makedirs(job_dir, exist_ok=True)
 
-    # 音声合成 + タイミング決定 (render.py と同じロジック)
-    timings: list[Timing] = []
-    t = 0.0
+    # 音声合成 + タイミング決定
+    from .audio import concat_wavs, synth_scenes
     with tempfile.TemporaryDirectory(prefix="shortgen_") as tmp:
-        seg_files = []
-        for i, sc in enumerate(scenes):
-            narration = sc.get("narration") or sc["text"].replace("\n", "")
-            wav = os.path.join(tmp, f"voice_{i}.wav")
-            has_voice = not isinstance(engine, SilentTTS) and engine.synth(narration, wav)
-            if has_voice:
-                probe = subprocess.run(
-                    ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                     "-of", "csv=p=0", wav], capture_output=True, text=True, check=True)
-                dur = max(float(probe.stdout.strip()) + TAIL,
-                          float(sc.get("min_duration", MIN_SCENE)))
-            else:
-                dur = max(estimate_duration(narration),
-                          float(sc.get("min_duration", MIN_SCENE)))
-            seg = os.path.join(tmp, f"seg_{i}.wav")
-            if has_voice:
-                subprocess.run(["ffmpeg", "-y", "-i", wav, "-af", "apad",
-                                "-t", f"{dur:.3f}", seg], check=True, capture_output=True)
-            else:
-                subprocess.run(["ffmpeg", "-y", "-f", "lavfi",
-                                "-i", "anullsrc=r=24000:cl=mono",
-                                "-t", f"{dur:.3f}", seg], check=True, capture_output=True)
-            seg_files.append(seg)
-            timings.append(Timing(t, t + dur))
-            t += dur
+        timings, seg_files = synth_scenes(scenes, engine, tmp)
+        concat_wavs(seg_files, os.path.join(job_dir, "audio.wav"), tmp)
 
-        concat_list = os.path.join(tmp, "concat.txt")
-        with open(concat_list, "w") as f:
-            for seg in seg_files:
-                f.write(f"file '{seg}'\n")
-        subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
-                        "-i", concat_list, "-c", "copy",
-                        os.path.join(job_dir, "audio.wav")],
-                       check=True, capture_output=True)
-
-    total = t
+    total = timings[-1].end
     if total > 60:
         print(f"⚠ 合計 {total:.1f}s — ショート動画の60秒を超えています")
 
+    # 実写素材(scenes[].media)を public/ へコピー
+    VIDEO_EXT = {".mp4", ".mov", ".webm", ".m4v"}
+    scene_props = []
+    for i, (sc, tm) in enumerate(zip(scenes, timings)):
+        p = {"text": sc["text"], "start": tm.start, "end": tm.end}
+        if sc.get("emoji"):
+            p["emoji"] = sc["emoji"]
+        if sc.get("media"):
+            src = sc["media"] if os.path.isabs(sc["media"]) else os.path.join(REPO_ROOT, sc["media"])
+            if not os.path.exists(src):
+                raise FileNotFoundError(f"シーン{i+1}のmediaが見つかりません: {sc['media']}")
+            ext = os.path.splitext(src)[1].lower()
+            dst_name = f"media_{i}{ext}"
+            shutil.copy(src, os.path.join(job_dir, dst_name))
+            p["media"] = f"job/{slug}/{dst_name}"
+            p["mediaType"] = "video" if ext in VIDEO_EXT else "image"
+        scene_props.append(p)
+
     props = {
         "title": script.get("title", ""),
-        "scenes": [
-            {"text": sc["text"],
-             **({"emoji": sc["emoji"]} if sc.get("emoji") else {}),
-             "start": tm.start, "end": tm.end}
-            for sc, tm in zip(scenes, timings)
-        ],
+        "scenes": scene_props,
         "audioSrc": f"job/{slug}/audio.wav",
         "character": char_props,
-        "characterWidth": int(script.get("character_width", 780)),
+        "characterWidth": char_width,
         "total": total,
         "bg0": _css(theme["bg0"]),
         "bg1": _css(theme["bg1"]),

@@ -13,12 +13,15 @@ import '@fontsource/noto-sans-jp/900.css';
 import {Background} from './Background';
 import {Character, type CharacterAssets} from './Character';
 import {KineticText} from './KineticText';
+import {MediaCard} from './MediaCard';
 
 export const FPS = 30;
 
 export type Scene = {
   text: string;
   emoji?: string;
+  media?: string;              // 実写素材 (public/ 配下の相対パス)
+  mediaType?: 'image' | 'video';
   start: number; // 秒
   end: number;   // 秒
 };
@@ -65,12 +68,15 @@ export const ShortVideo: React.FC<VideoProps> = (props) => {
     <AbsoluteFill style={{fontFamily: FONT}}>
       <Background bg0={props.bg0} bg1={props.bg1} accent={props.accent} />
 
-      {/* キャラクター (口パク) */}
-      <Character
-        assets={props.character}
-        audioSrc={props.audioSrc}
-        width={props.characterWidth}
-      />
+      {/* キャラクター (口パク)。characterWidth=0 で非表示、実写素材があれば右下に退避 */}
+      {props.characterWidth > 0 ? (
+        <Character
+          assets={props.character}
+          audioSrc={props.audioSrc}
+          width={props.characterWidth}
+          corner={props.scenes.some((s) => s.media)}
+        />
+      ) : null}
 
       {/* タイトルチップ */}
       <div
@@ -109,6 +115,13 @@ export const ShortVideo: React.FC<VideoProps> = (props) => {
         const to = Math.min(Math.round(sc.end * fps), durationInFrames);
         return (
           <Sequence key={i} from={from} durationInFrames={to - from}>
+            {sc.media ? (
+              <MediaCard
+                src={sc.media}
+                mediaType={sc.mediaType ?? 'image'}
+                compact={props.characterWidth > 0}
+              />
+            ) : null}
             <KineticText
               text={sc.text}
               emoji={sc.emoji}
