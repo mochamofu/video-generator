@@ -1,0 +1,4 @@
+node_modules/
+shots/
+results.json
+export_test_output.mp4

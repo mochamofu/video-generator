@@ -33,7 +33,7 @@ export const MediaCard: React.FC<{
       }}
     >
       {mediaType === 'video' ? (
-        <OffthreadVideo src={staticFile(src)} muted style={style} loop />
+        <OffthreadVideo src={staticFile(src)} muted style={style} />
       ) : (
         <Img src={staticFile(src)} style={style} />
       )}
