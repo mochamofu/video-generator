@@ -1,0 +1,10 @@
+node_modules/
+server/media/*
+!server/media/.gitkeep
+server/thumbs/*
+!server/thumbs/.gitkeep
+server/projects/*
+!server/projects/.gitkeep
+server/renders/*
+!server/renders/.gitkeep
+server/media-index.json
